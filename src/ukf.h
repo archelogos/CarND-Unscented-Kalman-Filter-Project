@@ -81,6 +81,18 @@ public:
   virtual ~UKF();
 
   /**
+   * Init Initializes Unscented Kalman filter
+   */
+  void Init();
+
+  /**
+   * Helper functions
+   */
+  MatrixXd SigmaPoints();
+  MatrixXd PredictedSigmaPoints(double delta_t);
+
+
+  /**
    * ProcessMeasurement
    * @param meas_package The latest measurement data of either radar or laser
    */
