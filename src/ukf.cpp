@@ -1,6 +1,11 @@
 #include <iostream>
 #include "ukf.h"
 
+using namespace std;
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
+using std::vector;
+
 /**
  * Initializes Unscented Kalman filter
  */
@@ -61,8 +66,9 @@ void UKF::Init() {
   lambda_ = 3 - n_aug_;
 
   // Weights of sigma points
+  weights_ = VectorXd(2*n_aug_+1);
   weights_(0) = lambda_/(lambda_+n_aug_);
-  for (int i=1; i<2*n_aug_+1; i++) { //2n+1 weights
+  for (int i=1; i<2*n_aug_+1; i++) { // 15 weights
     weights_(i) = 0.5/(n_aug_+lambda_);
   }
 
@@ -111,6 +117,7 @@ MatrixXd UKF::SigmaPoints() {
     Xsig_aug.col(i+1+n_aug_) = x_aug - sqrt(lambda_+n_aug_) * L.col(i);
   }
 
+  // 7 x 15
   return Xsig_aug;
 
 }
@@ -120,10 +127,11 @@ MatrixXd UKF::PredictedSigmaPoints(double delta_t) {
   //create sigma point matrix
   MatrixXd Xsig_aug = SigmaPoints();
 
+  // 5 x 15
   MatrixXd Xsig_pred = MatrixXd(n_x_, 2 * n_aug_ + 1);
 
   //predict sigma points
-  for (int i = 0; i< 2*n_aug_+1; i++)
+  for (int i = 0; i < 2 * n_aug_ + 1; i++)
   {
     //extract values for better readability
     double p_x = Xsig_aug(0,i);
@@ -211,7 +219,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       x_ << px, py, 0, 0, 0;
     }
 
-    // state covariance matrix P
+    // state covariance matrix P -> I
     P_ << 1, 0, 0, 0, 0,
           0, 1, 0, 0, 0,
           0, 0, 1, 0, 0,
@@ -232,7 +240,23 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   double delta_t = (meas_package.timestamp_ - time_us_) / 1000000.0;	//delta_t - expressed in seconds
   time_us_ = meas_package.timestamp_;
 
+  // Updates x_ and P_
   Prediction(delta_t);
+
+  /*****************************************************************************
+   *  Update
+   ****************************************************************************/
+
+  if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+    // Radar updates
+    UpdateRadar(meas_package);
+  } else {
+    UpdateLidar(meas_package);
+  }
+
+  // print the output
+  cout << "x_ = " << x_ << endl;
+  cout << "P_ = " << P_ << endl;
 
 }
 
@@ -251,10 +275,10 @@ void UKF::Prediction(double delta_t) {
 
   MatrixXd Xsig_pred = PredictedSigmaPoints(delta_t);
 
-  //create vector for predicted state
+  //create vector for predicted state (5 x 1)
   VectorXd x = VectorXd(n_x_);
 
-  //create covariance matrix for prediction
+  //create covariance matrix for prediction (5 x 5)
   MatrixXd P = MatrixXd(n_x_, n_x_);
 
   //predicted state mean
@@ -275,6 +299,10 @@ void UKF::Prediction(double delta_t) {
 
     P = P + weights_(i) * x_diff * x_diff.transpose() ;
   }
+
+  // Update predicted state and covariance Matrix
+  x_ = x;
+  P_ = P;
 
 }
 
