@@ -88,9 +88,8 @@ public:
   /**
    * Helper functions
    */
-  MatrixXd SigmaPoints();
+  MatrixXd AugmentedSigmaPoints();
   MatrixXd PredictedSigmaPoints(double delta_t);
-
 
   /**
    * ProcessMeasurement
