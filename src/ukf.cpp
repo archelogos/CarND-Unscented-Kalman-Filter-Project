@@ -444,13 +444,14 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     double v1 = cos(yaw)*v;
     double v2 = sin(yaw)*v;
 
-    // measurement model (avoid dividing by zero!!)
+    // measurement model (avoid dividing by zero or atan2!!)
     Zsig(0,i) = sqrt(p_x*p_x + p_y*p_y);                        //r
-    Zsig(1,i) = atan2(p_y,p_x);                                 //phi
-    if(fabs(sqrt(p_x*p_x + p_y*p_y)) > 0.001) {                 //r_dot
-      Zsig(2,i) = (p_x*v1 + p_y*v2 ) / sqrt(p_x*p_x + p_y*p_y);
-    } else {
+    if(p_x == 0.0 && p_y == 0.0) {                              //phi and r_dot
+      Zsig(1,i) = 0.0;
       Zsig(2,i) = 0.0;
+    } else {
+      Zsig(1,i) = atan2(p_y,p_x);
+      Zsig(2,i) = (p_x*v1 + p_y*v2 ) / sqrt(p_x*p_x + p_y*p_y);
     }
   }
 
